@@ -303,7 +303,7 @@ class SkillExtractor:
                     )
 
 
-def _detect_docker(self, text: str, skills_dict: dict) -> None:
+    def _detect_docker(self, text: str, skills_dict: dict) -> None:
         """Detect Docker/Docker Compose from structural syntax, not just the word 'docker'."""
         if "Docker" in skills_dict:
             return  # already matched via literal keyword in _detect_tools
