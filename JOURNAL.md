@@ -15,3 +15,19 @@ The `extract_skills()` method in `ingestion/parsers/skill_extractor.py` doesn't 
 
 **Cohort ledger:** [x] Issue added to cohort ledger
 
+
+
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:** [link to commit documenting the reproduced issue]
+
+**Reproduction summary:**
+Ran the repro script from issue #148 in the Python REPL. extract_skills('Wrote index.js using const arrow functions and async/await callbacks') returned []. extract_skills('Built app.tsx and types.ts with strict TypeScript interfaces') returned only ['React'], confirming JS gets no detection and TypeScript is misclassified as React.
+
+
+**PLAN.md link:** [link to PLAN.md in your fork]
+
+
+
+**Blockers or open questions:**
+[leave blank or note anything uncertain]
