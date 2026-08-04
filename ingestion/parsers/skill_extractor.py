@@ -172,22 +172,46 @@ class SkillExtractor:
 
         # JavaScript/TypeScript detection
         js_evidence = []
+        ts_evidence = []
+
         if ".js" in str(filename or "").lower():
             js_evidence.append("JavaScript file extension (.js)")
         if ".ts" in str(filename or "").lower():
-            js_evidence.append("TypeScript file extension (.ts)")
-        if re.search(r"\b(import|require)\s+", text):
-            js_evidence.append("CommonJS or ES6 imports")
+            ts_evidence.append("TypeScript file extension (.ts)")
+        if re.search(r"\brequire\s*\(", text):
+            js_evidence.append("CommonJS require() call")
+        if re.search(r"\bimport\s+.+\bfrom\s+['\"]", text):
+            js_evidence.append("ES6 import syntax")
+        if re.search(r"\bexport\s+(default\s+)?(function|class|const|let|var|interface)\b", text):
+            js_evidence.append("ES6 export syntax")
+        if re.search(r"\b(const|let|var)\s+\w+", text):
+            js_evidence.append("JS variable declarations")
+        if "console.log" in text:
+            js_evidence.append("console.log usage")
         if "package.json" in text_lower:
             js_evidence.append("package.json found")
 
-        if js_evidence:
-            confidence = min(0.95, 0.6 + len(js_evidence) * 0.1)
-            lang = "TypeScript" if ".ts" in str(filename or "").lower() else "JavaScript"
-            skills_dict[lang] = SkillDetection(
-                name=lang,
+        # TypeScript-specific structural signals
+        if re.search(r"\binterface\s+\w+\s*{", text):
+            ts_evidence.append("TypeScript interface declaration")
+        if re.search(r":\s*(string|number|boolean|any|void|unknown)\b", text):
+            ts_evidence.append("TypeScript type annotation")
+        if re.search(r"Promise<\w+>", text):
+            ts_evidence.append("TypeScript Promise<T> generic")
+
+        if ts_evidence:
+            combined = js_evidence + ts_evidence
+            skills_dict["TypeScript"] = SkillDetection(
+                name="TypeScript",
                 category="Language",
-                confidence=confidence,
+                confidence=min(0.95, 0.6 + len(combined) * 0.1),
+                evidence=combined,
+            )
+        elif js_evidence:
+            skills_dict["JavaScript"] = SkillDetection(
+                name="JavaScript",
+                category="Language",
+                confidence=min(0.95, 0.6 + len(js_evidence) * 0.1),
                 evidence=js_evidence,
             )
 
@@ -274,3 +298,31 @@ class SkillExtractor:
                         confidence=confidence,
                         evidence=[f"Found '{tool}' reference in content"],
                     )
+
+
+def _detect_docker(self, text: str, skills_dict: dict) -> None:
+        """Detect Docker/Docker Compose from structural syntax, not just the word 'docker'."""
+        if "Docker" in skills_dict:
+            return  # already matched via literal keyword in _detect_tools
+
+        docker_evidence = []
+        if re.search(r"^\s*FROM\s+\S+", text, re.MULTILINE):
+            docker_evidence.append("Dockerfile FROM instruction")
+        if re.search(r"^\s*RUN\s+\S+", text, re.MULTILINE):
+            docker_evidence.append("Dockerfile RUN instruction")
+        if re.search(r"^\s*EXPOSE\s+\d+", text, re.MULTILINE):
+            docker_evidence.append("Dockerfile EXPOSE instruction")
+        if re.search(r"^\s*(CMD|ENTRYPOINT)\s*[\[\(]", text, re.MULTILINE):
+            docker_evidence.append("Dockerfile CMD/ENTRYPOINT instruction")
+        if re.search(r"^\s*services:\s*$", text, re.MULTILINE) and re.search(r"^\s*build:\s*", text, re.MULTILINE):
+            docker_evidence.append("docker-compose services/build syntax")
+        if re.search(r"^\s*version:\s*['\"]?\d", text, re.MULTILINE) and "services:" in text:
+            docker_evidence.append("docker-compose version/services syntax")
+
+        if docker_evidence:
+            skills_dict["Docker"] = SkillDetection(
+                name="Docker",
+                category="Tool",
+                confidence=min(0.95, 0.6 + len(docker_evidence) * 0.1),
+                evidence=docker_evidence,
+            )
