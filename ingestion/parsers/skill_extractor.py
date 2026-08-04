@@ -133,6 +133,9 @@ class SkillExtractor:
         # Detect tools
         self._detect_tools(text, detected_skills)
 
+        # Detect Docker/Docker Compose specifically (structural, not just literal keyword)
+        self._detect_docker(text, detected_skills)
+
         # Sort by confidence
         return sorted(
             detected_skills.values(),
